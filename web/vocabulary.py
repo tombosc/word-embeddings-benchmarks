@@ -7,9 +7,10 @@ NOTE: This file was adapted from the polyglot package
 """
 
 from io import open, StringIO
-from collections import Counter
+from collections import Counter, defaultdict
 import os
 from concurrent.futures import ProcessPoolExecutor
+import numpy as np
 
 import six
 from six.moves import zip
@@ -44,7 +45,14 @@ class Vocabulary(object):
         Args:
           words (list/set): list or set of words.
         """
-        words = self.sanitize_words(words)
+        words, word_to_ids = self.sanitize_words(words)
+        to_remove = []
+        # remove duplicates caused by sanitize_words
+        # keep only the first arrived (this is a debatable heuristic...)
+        for w, ids in word_to_ids.iteritems():
+            if len(ids) > 1:
+                to_remove.extend(ids[1:]) 
+        words = np.delete(words, to_remove)
         self.word_id = {w: i for i, w in enumerate(words)}
         self.id_word = {i: w for w, i in iteritems(self.word_id)}
 
@@ -106,12 +114,15 @@ class Vocabulary(object):
           We assume that the strings are encoded in utf-8.
         """
         _words = []
-        for w in words:
+        _words_to_ids = defaultdict(list)
+        for i,w in enumerate(words):
             if isinstance(w, string_types) and not isinstance(w, unicode):
                 _words.append(unicode(w, encoding="utf-8"))
             else:
                 _words.append(w)
-        return _words
+            added_word = _words[-1]
+            _words_to_ids[added_word].append(i)
+        return _words, _words_to_ids
 
     def get(self, k, default=None):
         try:
@@ -145,17 +156,6 @@ class OrderedVocabulary(Vocabulary):
       word_id (dictionary): Mapping from words to IDs.
       id_word (dictionary): A reverse map of `word_id`.
     """
-
-    def __init__(self, words=None):
-        """ Build attributes word_id and id_word from input.
-
-        Args:
-          words (list): list of sorted words according to frequency.
-        """
-
-        words = self.sanitize_words(words)
-        self.word_id = {w: i for i, w in enumerate(words)}
-        self.id_word = {i: w for w, i in iteritems(self.word_id)}
 
     def most_frequent(self, k):
         """ Returns a vocabulary with the most frequent `k` words.

@@ -307,8 +307,8 @@ class Embedding(object):
                     ignored += 1
                     logger.warning("We ignored line number {} because of erros in parsing"
                                    "\n{}".format(line_no, e))
-
-            return Embedding(vocabulary=OrderedVocabulary(words), vectors=vectors[0:len(words)])
+            vocab = OrderedVocabulary(words)
+            return Embedding(vocabulary=vocab, vectors=vectors[0:len(vocab)])
 
 
     @staticmethod
