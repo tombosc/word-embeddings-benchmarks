@@ -47,7 +47,7 @@ class Embedding(object):
 
         if k not in self.vocabulary:
             self.vocabulary.add(k)
-            self.vectors = np.vstack([self.vectors, v.reshape(1,-11)])
+            self.vectors = np.vstack([self.vectors, v.reshape(1, -1)])
         else:
             self.vectors[self.vocabulary[k]] = v
 
@@ -323,7 +323,7 @@ class Embedding(object):
 
     @staticmethod
     def from_dict(d):
-        for k in d: # Standarize
+        for k in d: # Standardize
             d[k] = np.array(d[k]).flatten()
         return Embedding(vectors=list(d.values()), vocabulary=Vocabulary(d.keys()))
 

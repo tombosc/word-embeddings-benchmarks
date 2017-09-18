@@ -325,10 +325,11 @@ def evaluate_similarity_multi(w, X, y, model):
     mean_vector = np.mean(w.vectors, axis=0, keepdims=True)
     A = [w.get_multi(word, mean_vector) for word in X[:, 0]]
     B = [w.get_multi(word, mean_vector) for word in X[:, 1]]
+    prod_norm = lambda v1, v2: np.outer(np.linalg.norm(v1, axis=1),np.linalg.norm(v2, axis=1))
     if model == 'MaxSim':
-        scores = np.array([np.max(np.dot(v1, v2.T)) for v1, v2 in zip(A, B)])
+        scores = np.array([np.max(np.dot(v1, v2.T)/prod_norm(v1, v2)) for v1, v2 in zip(A, B)])
     if model == 'AvgSim':
-        scores = np.array([np.mean(np.dot(v1, v2.T)) for v1, v2 in zip(A, B)])
+        scores = np.array([np.mean(np.dot(v1, v2.T)/prod_norm(v1, v2)) for v1, v2 in zip(A, B)])
     return scipy.stats.spearmanr(scores, y).correlation
 
 def evaluate_similarity(w, X, y):
@@ -368,7 +369,7 @@ def evaluate_similarity(w, X, y):
     mean_vector = np.mean(w.vectors, axis=0, keepdims=True)
     A = np.vstack(w.get(word, mean_vector) for word in X[:, 0])
     B = np.vstack(w.get(word, mean_vector) for word in X[:, 1])
-    scores = np.array([v1.dot(v2.T) for v1, v2 in zip(A, B)])
+    scores = np.array([v1.dot(v2.T)/(np.linalg.norm(v1)*np.linalg.norm(v2)) for v1, v2 in zip(A, B)])
     return scipy.stats.spearmanr(scores, y).correlation
 
 
