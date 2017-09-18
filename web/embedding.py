@@ -20,6 +20,8 @@ from .utils import standardize_string, to_utf8
 
 from sklearn.metrics import pairwise_distances
 
+from nltk.corpus import wordnet
+
 logger = logging.getLogger(__name__)
 
 class Embedding(object):
@@ -82,7 +84,10 @@ class Embedding(object):
         try:
             return self[k]
         except KeyError as e:
-            return default
+            try:
+                return self[wordnet.morphy(k)]
+            except KeyError as e:
+                return default
 
     def standardize_words(self, lower=False, clean_words=False, inplace=False):
         return self.transform_words(partial(standardize_string, lower=lower, clean_words=clean_words),
