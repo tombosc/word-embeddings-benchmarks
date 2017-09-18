@@ -10,7 +10,7 @@ from .datasets.categorization import fetch_AP, fetch_battig, fetch_BLESS, fetch_
     fetch_ESSLI_2c
 from web.analogy import *
 from six import iteritems
-from web.embedding import Embedding
+from web.embedding import Embedding, PolyEmbedding
 
 logger = logging.getLogger(__name__)
 
@@ -298,6 +298,39 @@ def evaluate_on_WordRep(w, max_pairs=1000, solver_kwargs={}):
                       pd.Series(count, name="count")], axis=1)
 
 
+def count_missing_words(w, X):
+    missing_words = 0
+    words = w.vocabulary.word_id
+    for query in X:
+        for query_word in query:
+            if query_word not in words:
+                missing_words += 1
+    return missing_words
+
+def evaluate_similarity_multi(w, X, y, model):
+    """
+    Using maximum cosine similarity, see "Multimodal Word Distributions"
+    """
+    if isinstance(w, dict):
+        w = PolyEmbedding.from_dict(w)
+
+    assert(model in ['AvgSim', 'MaxSim'])
+
+    # TODO: also replace code by call in evaluate_similarity()
+    missing_words = count_missing_words(w, X) 
+    if missing_words > 0:
+        logger.warning("Missing {} words. Will replace them with mean vector".format(missing_words))
+    # TODO chec that multi embedding
+    # TODO: decidew hether to call them multi or poly
+    mean_vector = np.mean(w.vectors, axis=0, keepdims=True)
+    A = [w.get_multi(word, mean_vector) for word in X[:, 0]]
+    B = [w.get_multi(word, mean_vector) for word in X[:, 1]]
+    if model == 'MaxSim':
+        scores = np.array([np.max(np.dot(v1, v2.T)) for v1, v2 in zip(A, B)])
+    if model == 'AvgSim':
+        scores = np.array([np.mean(np.dot(v1, v2.T)) for v1, v2 in zip(A, B)])
+    return scipy.stats.spearmanr(scores, y).correlation
+
 def evaluate_similarity(w, X, y):
     """
     Calculate Spearman correlation between cosine similarity of the model
@@ -414,5 +447,50 @@ def evaluate_on_all(w):
     analogy = pd.DataFrame([analogy_results])
     sim = pd.DataFrame([similarity_results])
     results = cat.join(sim).join(analogy)
+
+    return results
+
+def evaluate_on_all_multi(w, model):
+    """
+    Evaluate Embedding on all fast-running benchmarks
+
+    Parameters
+    ----------
+    w: Embedding or dict
+      Embedding to evaluate.
+
+    Returns
+    -------
+    results: pandas.DataFrame
+      DataFrame with results, one per column.
+    """
+    print "Evaluating multi-prototype embeddings"
+    if isinstance(w, dict):
+        w = PolyEmbedding.from_dict(w)
+
+    # Calculate results on similarity
+    logger.info("Calculating similarity benchmarks")
+    similarity_tasks = {
+        "MEN": fetch_MEN(),
+        "WS353": fetch_WS353(),
+        "WS353R": fetch_WS353(which="relatedness"),
+        "WS353S": fetch_WS353(which="similarity"),
+        "SimLex999": fetch_SimLex999(),
+        "RW": fetch_RW(),
+        "RG65": fetch_RG65(),
+        "MTurk": fetch_MTurk(),
+    }
+
+    similarity_results = {}
+
+    for name, data in iteritems(similarity_tasks):
+        similarity_results[name] = evaluate_similarity_multi(w, data.X, data.y, model)
+        logger.info("Spearman correlation of scores on {} {}".format(name, similarity_results[name]))
+
+    # TODO implem other benchmarks
+
+    # Construct pd table
+    sim = pd.DataFrame([similarity_results])
+    results = sim
 
     return results

@@ -5,7 +5,7 @@
 from six.moves import cPickle as pickle
 from os import path
 from .datasets.utils import _get_dataset_dir, _fetch_file
-from .embedding import Embedding
+from .embedding import Embedding, PolyEmbedding
 
 def load_embedding(fname, format="word2vec_bin", normalize=True,
                    lower=False, clean_words=False, load_kwargs={}):
@@ -32,7 +32,7 @@ def load_embedding(fname, format="word2vec_bin", normalize=True,
       Additional parameters passed to load function. Mostly useful for 'glove' format where you
       should pass vocab_size and dim.
     """
-    assert format in ['word2vec_bin', 'word2vec', 'glove', 'dict'], "Unrecognized format"
+    assert format in ['word2vec_bin', 'word2vec', 'glove', 'dict', 'dict_poly'], "Unrecognized format"
     if format == "word2vec_bin":
         w = Embedding.from_word2vec(fname, binary=True)
     elif format == "word2vec":
@@ -42,8 +42,11 @@ def load_embedding(fname, format="word2vec_bin", normalize=True,
     elif format == "dict":
         d = pickle.load(open(fname, "rb"))
         w = Embedding.from_dict(d)
+    elif format == "dict_poly":
+        d = pickle.load(open(fname, "rb"))
+        w = PolyEmbedding.from_dict(d)
     if normalize:
-        w.normalize_words(inplace=True)
+        w.normalize_words()
     if lower or clean_words:
         w.standardize_words(lower=lower, clean_words=clean_words, inplace=True)
     return w

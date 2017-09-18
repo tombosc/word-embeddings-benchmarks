@@ -133,6 +133,12 @@ class Embedding(object):
             return self
         return Embedding(vectors=vectors, vocabulary=vocabulary)
 
+    @staticmethod
+    def normalize_rows(X, ord=2):
+        if ord == 2:
+            ord = None  # numpy uses this flag to indicate l2.
+        return (X.T / np.linalg.norm(X, ord, axis=1)).T
+
     def normalize_words(self, ord=2, inplace=False):
         """Normalize embeddings matrix row-wise.
 
@@ -140,13 +146,12 @@ class Embedding(object):
         ----------
           ord: normalization order. Possible values {1, 2, 'inf', '-inf'}
         """
-        if ord == 2:
-            ord = None  # numpy uses this flag to indicate l2.
-        vectors = self.vectors.T / np.linalg.norm(self.vectors, ord, axis=1)
+        vectors_normalized = Embedding.normalize_rows(self.vectors, ord) 
         if inplace:
-            self.vectors = vectors.T
+            self.vectors = vectors_normalized
             return self
-        return Embedding(vectors=vectors.T, vocabulary=self.vocabulary)
+        return Embedding(vectors=vectors_normalized,
+                         vocabulary=self.vocabulary)
 
 
     def nearest_neighbors(self, word, k=1, exclude=[], metric="cosine"):
@@ -396,3 +401,61 @@ class Embedding(object):
         state = (voc, vec)
         with open(fname, 'wb') as f:
             pickle.dump(state, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+class PolyEmbedding(Embedding):
+    """ Mapping a vocabulary to several d-dimensional points."""
+
+    def __init__(self, vocabulary, multi_vectors):
+        """
+        multi_vectors: list of lists
+        """
+        embedding_size = multi_vectors[0][0].shape[0]
+        # TODO: change the way we store them so that we don't need to convert to np array...
+        self.multi_vectors = [np.asarray(v) for v in multi_vectors] 
+        mean_vectors = [v.mean(axis=0) for v in self.multi_vectors]
+        super(PolyEmbedding, self).__init__(vocabulary, mean_vectors)
+
+    def get_multi(self, k, default=None):
+        try:
+            return self.multi_vectors[self.vocabulary[k]]
+        except KeyError as e:
+            return default
+
+    # TODO get, set, delitem
+
+    @property
+    def words(self):
+        return self.vocabulary.words
+
+    @property
+    def shape(self):
+        return self.vectors.shape
+    
+    # TODO: other import function: NotImplemented
+
+    @staticmethod
+    def from_dict(d):
+        return PolyEmbedding(multi_vectors=list(d.values()), vocabulary=Vocabulary(d.keys()))
+
+    @staticmethod
+    def to_word2vec(w, fname, binary=False):
+        raise NotImplementedError("Can't export to word2vec format yet.")
+
+    @staticmethod
+    def from_word2vec(fname, fvocab=None, binary=False):
+        raise NotImplementedError("Can't import from word2vec format yet. Use dict format.")
+
+    def normalize_words(self, ord=2):
+        """Normalize embeddings matrix row-wise.
+
+        Parameters
+        ----------
+          ord: normalization order. Possible values {1, 2, 'inf', '-inf'}
+        """
+        # first normalize the means
+        Embedding.normalize_words(self, ord, inplace=True)
+        for i in range(len(self.multi_vectors)):
+            X = self.multi_vectors[i]
+            self.multi_vectors[i] = Embedding.normalize_rows(X, ord)
+        return self

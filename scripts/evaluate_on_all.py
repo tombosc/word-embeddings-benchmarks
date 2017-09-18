@@ -21,7 +21,7 @@ import os
 from web.embeddings import fetch_GloVe, load_embedding
 from web.datasets.utils import _get_dataset_dir
 
-from web.evaluate import evaluate_on_all
+from web.evaluate import evaluate_on_all, evaluate_on_all_multi
 
 
 # Configure logging
@@ -46,6 +46,12 @@ parser.add_option("-c", "--clean_words", dest="clean_words",
                        "most of the non-alphanumeric characters, which should speed up evaluation.",
                   default=False)
 
+parser.add_option("-m", "--multi", dest="multi_prototype", action='store_true',
+                  help="Evaluate as multi-prototype embeddings")
+
+parser.add_option("-s", "--model", dest="model", default='MaxSim',
+                  help="Similarity evaluation model: either MaxSim or AvgSim")
+
 if __name__ == "__main__":
     (options, args) = parser.parse_args()
 
@@ -68,7 +74,7 @@ if __name__ == "__main__":
             elif ext == ".pkl":
                 format = "dict"
 
-        assert format in ['word2vec_bin', 'word2vec', 'glove', 'bin'], "Unrecognized format"
+        assert format in ['word2vec_bin', 'word2vec', 'glove', 'bin', 'dict', 'dict_poly'], "Unrecognized format"
 
         load_kwargs = {}
         if format == "glove":
@@ -80,7 +86,10 @@ if __name__ == "__main__":
 
     out_fname = options.output if options.output else "results.csv"
 
-    results = evaluate_on_all(w)
+    if options.multi_prototype:
+        results = evaluate_on_all_multi(w, options.model)
+    else:
+        results = evaluate_on_all(w)
 
     logger.info("Saving results...")
     print(results)
