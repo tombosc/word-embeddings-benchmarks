@@ -446,13 +446,16 @@ class PolyEmbedding(Embedding):
     def from_word2vec(fname, fvocab=None, binary=False):
         raise NotImplementedError("Can't import from word2vec format yet. Use dict format.")
 
-    def normalize_words(self, ord=2):
+    def normalize_words(self, ord=2, inplace=False):
         """Normalize embeddings matrix row-wise.
 
         Parameters
         ----------
           ord: normalization order. Possible values {1, 2, 'inf', '-inf'}
         """
+        if not inplace:
+            raise NotImplementedError("")
+
         # first normalize the means
         Embedding.normalize_words(self, ord, inplace=True)
         for i in range(len(self.multi_vectors)):
