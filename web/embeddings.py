@@ -46,7 +46,7 @@ def load_embedding(fname, format="word2vec_bin", normalize=True,
         d = pickle.load(open(fname, "rb"))
         w = PolyEmbedding.from_dict(d)
     if normalize:
-        w.normalize_words()
+        w.normalize_words(inplace=True)
     if lower or clean_words:
         w.standardize_words(lower=lower, clean_words=clean_words, inplace=True)
     return w
