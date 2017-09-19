@@ -84,10 +84,11 @@ class Embedding(object):
         try:
             return self[k]
         except KeyError as e:
-            try:
+            if k.lower() in self.vocabulary:
+                return self[k.lower()]
+            elif wordnet.morphy(k) in self.vocabulary:
                 return self[wordnet.morphy(k)]
-            except KeyError as e:
-                return default
+            return default
 
     def standardize_words(self, lower=False, clean_words=False, inplace=False):
         return self.transform_words(partial(standardize_string, lower=lower, clean_words=clean_words),
@@ -425,6 +426,12 @@ class PolyEmbedding(Embedding):
         try:
             return self.multi_vectors[self.vocabulary[k]]
         except KeyError as e:
+            lowercased = k.lower()
+            lemmatised = wordnet.morphy(k)
+            if lowercased in self.vocabulary:
+                return self.multi_vectors[self.vocabulary[lowercased]]
+            elif lemmatised in self.vocabulary:
+                return self.multi_vectors[self.vocabulary[lemmatised]]
             return default
 
     # TODO get, set, delitem
