@@ -49,6 +49,13 @@ parser.add_option("-c", "--clean_words", dest="clean_words",
 parser.add_option("-m", "--multi", dest="multi_prototype", action='store_true',
                   help="Evaluate as multi-prototype embeddings")
 
+parser.add_option("-l", "--lowercase", dest="lowercase", action='store_true',
+                  help="Lowercase")
+
+parser.add_option("-n", "--normalize", dest="normalize", action='store_true',
+                  help="Normalize")
+
+
 parser.add_option("-s", "--model", dest="model", default='MaxSim',
                   help="Similarity evaluation model: either MaxSim or AvgSim")
 
@@ -81,7 +88,8 @@ if __name__ == "__main__":
             vocab_size = sum(1 for line in open(fname))
             dim = len(next(open(fname)).split()) - 1
 
-        w = load_embedding(fname, format=format, normalize=True, lower=True, clean_words=options.clean_words,
+        w = load_embedding(fname, format=format, normalize=options.normalize,
+                           lower=options.lowercase, clean_words=options.clean_words,
                            load_kwargs=load_kwargs)
 
     out_fname = options.output if options.output else "results.csv"

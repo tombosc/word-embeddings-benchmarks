@@ -307,10 +307,40 @@ def count_missing_words(w, X):
                 missing_words += 1
     return missing_words
 
+def cosine_similarity(v1, v2, model=None):
+    """
+    compute cosine similarity: regular between 2 vectors or max of pairwise or
+    average of pairwise
+
+    v1: ndarray of dimension 1 (dim,) or 2 (n_embeddings, dim)
+    v2: ndarray of dimension 1 (dim,) or 2 (n_embeddings, dim)
+    model: None if v1 and v2 have dimension 1
+           else, 'AvgSim' or 'MaxSim'
+    """
+    if len(v1.shape) == 1:
+        v1 = v1.reshape((1,-1))
+    if len(v2.shape) == 1:
+        v2 = v2.reshape((1,-1))
+    prod_norm = np.outer(np.linalg.norm(v1, axis=1),np.linalg.norm(v2, axis=1))
+    pairwise_cosine = np.dot(v1, v2.T)/prod_norm
+    if not model:
+        return pairwise_cosine[0][0]
+    elif model == 'AvgSim':
+        return np.mean(pairwise_cosine)
+    elif model == 'MaxSim':
+        return np.max(pairwise_cosine)
+    else:
+        return ValueError('Unknown model {}'.format(model))
+
+
 def evaluate_similarity_multi(w, X, y, model):
     """
-    Using maximum cosine similarity, see "Multimodal Word Distributions"
+    Compute spearman's rank correlation based on cosine similarity
+
+    see "Multimodal Word Distributions" for more details
     """
+    assert(isinstance(w, PolyEmbedding))
+
     if isinstance(w, dict):
         w = PolyEmbedding.from_dict(w)
 
@@ -320,16 +350,11 @@ def evaluate_similarity_multi(w, X, y, model):
     missing_words = count_missing_words(w, X) 
     if missing_words > 0:
         logger.warning("Missing {} words. Will replace them with mean vector".format(missing_words))
-    # TODO chec that multi embedding
-    # TODO: decidew hether to call them multi or poly
+
     mean_vector = np.mean(w.vectors, axis=0, keepdims=True)
     A = [w.get_multi(word, mean_vector) for word in X[:, 0]]
     B = [w.get_multi(word, mean_vector) for word in X[:, 1]]
-    prod_norm = lambda v1, v2: np.outer(np.linalg.norm(v1, axis=1),np.linalg.norm(v2, axis=1))
-    if model == 'MaxSim':
-        scores = np.array([np.max(np.dot(v1, v2.T)/prod_norm(v1, v2)) for v1, v2 in zip(A, B)])
-    if model == 'AvgSim':
-        scores = np.array([np.mean(np.dot(v1, v2.T)/prod_norm(v1, v2)) for v1, v2 in zip(A, B)])
+    scores = np.array([cosine_similarity(v1, v2, model) for v1, v2 in zip(A, B)])
     return scipy.stats.spearmanr(scores, y).correlation
 
 def evaluate_similarity(w, X, y):
@@ -369,7 +394,8 @@ def evaluate_similarity(w, X, y):
     mean_vector = np.mean(w.vectors, axis=0, keepdims=True)
     A = np.vstack(w.get(word, mean_vector) for word in X[:, 0])
     B = np.vstack(w.get(word, mean_vector) for word in X[:, 1])
-    scores = np.array([v1.dot(v2.T)/(np.linalg.norm(v1)*np.linalg.norm(v2)) for v1, v2 in zip(A, B)])
+    scores = np.array([cosine_similarity(v1, v2) for v1, v2 in zip(A, B)])
+    #scores = np.array([v1.dot(v2.T)/(np.linalg.norm(v1)*np.linalg.norm(v2)) for v1, v2 in zip(A, B)])
     return scipy.stats.spearmanr(scores, y).correlation
 
 

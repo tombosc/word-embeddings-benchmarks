@@ -422,8 +422,6 @@ class PolyEmbedding(Embedding):
         except KeyError as e:
             return default
 
-    # TODO get, set, delitem
-
     @property
     def words(self):
         return self.vocabulary.words
