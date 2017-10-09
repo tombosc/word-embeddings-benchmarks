@@ -5,7 +5,7 @@
 import logging
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering, KMeans
-from .datasets.similarity import fetch_MEN, fetch_WS353, fetch_SimLex999, fetch_MTurk, fetch_RG65, fetch_RW
+from .datasets.similarity import fetch_MEN, fetch_WS353, fetch_SimLex999, fetch_SimVerb3500, fetch_MTurk, fetch_RG65, fetch_RW, fetch_SCWS
 from .datasets.categorization import fetch_AP, fetch_battig, fetch_BLESS, fetch_ESSLI_1a, fetch_ESSLI_2b, \
     fetch_ESSLI_2c
 from web.analogy import *
@@ -419,12 +419,16 @@ def evaluate_on_all(w):
     # Calculate results on similarity
     logger.info("Calculating similarity benchmarks")
     similarity_tasks = {
-        "MEN": fetch_MEN(),
+        "MEN-dev": fetch_MEN(which='dev'),
+        "MEN-test": fetch_MEN(which='test'),
         "WS353": fetch_WS353(),
         "WS353R": fetch_WS353(which="relatedness"),
         "WS353S": fetch_WS353(which="similarity"),
         "SimLex999": fetch_SimLex999(),
+        "SimVerb3500-dev": fetch_SimVerb3500(which='dev'),
+        "SimVerb3500-test": fetch_SimVerb3500(which='test'),
         "RW": fetch_RW(),
+        "SCWS": fetch_SCWS(),
         "RG65": fetch_RG65(),
         "MTurk": fetch_MTurk(),
     }
@@ -498,15 +502,20 @@ def evaluate_on_all_multi(w, model):
     # Calculate results on similarity
     logger.info("Calculating similarity benchmarks")
     similarity_tasks = {
-        "MEN": fetch_MEN(),
+        "MEN-dev": fetch_MEN(which='dev'),
+        "MEN-test": fetch_MEN(which='test'),
         "WS353": fetch_WS353(),
         "WS353R": fetch_WS353(which="relatedness"),
         "WS353S": fetch_WS353(which="similarity"),
         "SimLex999": fetch_SimLex999(),
+        "SimVerb3500-dev": fetch_SimVerb3500(which='dev'),
+        "SimVerb3500-test": fetch_SimVerb3500(which='test'),
+        "SCWS": fetch_SCWS(),
         "RW": fetch_RW(),
         "RG65": fetch_RG65(),
         "MTurk": fetch_MTurk(),
     }
+    print similarity_tasks.keys()
 
     similarity_results = {}
 

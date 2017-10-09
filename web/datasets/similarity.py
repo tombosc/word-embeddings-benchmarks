@@ -305,3 +305,58 @@ def fetch_SimLex999():
     assoc = data[['Assoc(USF)', 'SimAssoc333']].values
 
     return Bunch(X=X.astype("object"), y=y, sd=sd, conc=conc, POS=POS, assoc=assoc)
+
+def fetch_SimVerb3500(which='all'):
+    """
+    Fetch SimVerb3500 dataset for testing verb similarity
+
+    Returns
+    -------
+    data : sklearn.datasets.base.Bunch
+        dictionary-like object. Keys of interest:
+        'X': matrix of 2 words per column,
+        'y': vector with scores,
+
+    References
+    ----------
+    Gerz, Daniela et al., "SimVerb-3500: A Large-Scale Evaluation Set of Verb Similarity", 2016
+
+    Notes
+    -----
+    TODO
+    """
+    if which not in ['all', 'dev', 'test']:
+        raise RuntimeError("Not recognized which parameter")
+
+    url_map = {"all": 'https://www.dropbox.com/s/xct7j3h7i9bzi7y/all_SimVerb3500.txt?dl=1',
+               "dev": 'https://www.dropbox.com/s/57d850d6puxl6nm/dev_SimVerb3500.txt?dl=1',
+               "test": 'https://www.dropbox.com/s/66hlkkhfa6c9lrt/test_SimVerb3500.txt?dl=1'}
+
+    data = _get_as_pd(url_map[which], which, header=None, sep=" ")
+    return Bunch(X=data.values[:, 0:2].astype("object"), y=data.values[:, 2:].astype(np.float))
+
+def fetch_SCWS():
+    """
+    Fetch SCWS dataset for testing similarity (with a context)
+
+    Returns
+    -------
+    data : sklearn.datasets.base.Bunch
+        dictionary-like object. Keys of interest:
+        'X': matrix of 2 words per column,
+        'y': vector with mean scores,
+        'sd': standard deviation of scores
+
+    References
+    ----------
+    Huang et al., "Improving Word Representations via Global Context and Multiple Word Prototypes", 2012
+
+    Notes
+    -----
+    TODO
+    """
+    data = _get_as_pd('https://www.dropbox.com/s/qgqj366lzzzj1ua/preproc_SCWS.txt?dl=1', 'similarity', header=None, sep="\t")
+    X = data.values[:, 0:2].astype("object")
+    mean = data.values[:,2].astype(np.float)
+    sd = np.std(data.values[:, 3:14].astype(np.float), axis=1).flatten()
+    return Bunch(X=X, y=mean,sd=sd)
