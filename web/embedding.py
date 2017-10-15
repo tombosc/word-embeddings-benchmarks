@@ -20,12 +20,17 @@ from .utils import standardize_string, to_utf8
 
 from sklearn.metrics import pairwise_distances
 
+from nltk.corpus import wordnet
+
 logger = logging.getLogger(__name__)
 
 class Embedding(object):
     """ Mapping a vocabulary to a d-dimensional points."""
 
-    def __init__(self, vocabulary, vectors):
+    def __init__(self, vocabulary, vectors, lowercase_if_OOV=False,
+                 lemmatize_if_OOV=False):
+        self._lemmatize_if_OOV = lemmatize_if_OOV
+        self._lowercase_if_OOV = lowercase_if_OOV
         self.vocabulary = vocabulary
         self.vectors = np.asarray(vectors)
         if len(self.vocabulary) != self.vectors.shape[0]:
@@ -82,7 +87,14 @@ class Embedding(object):
         try:
             return self[k]
         except KeyError as e:
-            return default
+            if k.lower() in self.vocabulary:
+                return self[k.lower()]
+            else:
+                lemma = wordnet.morphy(k)
+                if lemma in self.vocabulary:
+                    return self[lemma]
+                else:
+                    return default
 
     def standardize_words(self, lower=False, clean_words=False, inplace=False):
         return self.transform_words(partial(standardize_string, lower=lower, clean_words=clean_words),
@@ -406,7 +418,8 @@ class Embedding(object):
 class PolyEmbedding(Embedding):
     """ Mapping a vocabulary to several d-dimensional points."""
 
-    def __init__(self, vocabulary, multi_vectors):
+    def __init__(self, vocabulary, multi_vectors, lowercase_if_OOV=False,
+                 lemmatize_if_OOV=False):
         """
         multi_vectors: list of lists
         """
@@ -414,12 +427,21 @@ class PolyEmbedding(Embedding):
         # TODO: change the way we store them so that we don't need to convert to np array...
         self.multi_vectors = [np.asarray(v) for v in multi_vectors] 
         mean_vectors = [v.mean(axis=0) for v in self.multi_vectors]
-        super(PolyEmbedding, self).__init__(vocabulary, mean_vectors)
+        super(PolyEmbedding, self).__init__(vocabulary, mean_vectors,
+                                            lowercase_if_OOV, lemmatize_if_OOV)
 
     def get_multi(self, k, default=None):
         try:
             return self.multi_vectors[self.vocabulary[k]]
         except KeyError as e:
+            if self._lowercase_if_OOV:
+                lowercased = k.lower()
+                if lowercased in self.vocabulary:
+                    return self.multi_vectors[self.vocabulary[lowercased]]
+            if self._lemmatize_if_OOV:
+                lemma = wordnet.morphy(k)
+                if lemma in self.vocabulary:
+                    return self.multi_vectors[self.vocabulary[lemma]]
             return default
 
     @property

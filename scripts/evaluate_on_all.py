@@ -59,6 +59,9 @@ parser.add_option("-n", "--normalize", dest="normalize", action='store_true',
 parser.add_option("-s", "--model", dest="model", default='MaxSim',
                   help="Similarity evaluation model: either MaxSim or AvgSim")
 
+parser.add_option("--lower-or-lemma", dest="lower_or_lemma", action='store_true',
+                  help="Lowercase and then lemmatize to try to find embeddings of OOV words")
+
 if __name__ == "__main__":
     (options, args) = parser.parse_args()
 
@@ -88,8 +91,11 @@ if __name__ == "__main__":
             vocab_size = sum(1 for line in open(fname))
             dim = len(next(open(fname)).split()) - 1
 
-        w = load_embedding(fname, format=format, normalize=options.normalize,
-                           lower=options.lowercase, clean_words=options.clean_words,
+        w = load_embedding(fname, format=format, normalize=True, lower=True,
+                           clean_words=options.clean_words,
+                           lower=options.lowercase
+                           lowercase_if_OOV=options.lower_or_lemma,
+                           lemmatize_if_OOV=options.lower_or_lemma,
                            load_kwargs=load_kwargs)
 
     out_fname = options.output if options.output else "results.csv"
