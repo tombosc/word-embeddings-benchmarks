@@ -8,7 +8,9 @@ from .datasets.utils import _get_dataset_dir, _fetch_file
 from .embedding import Embedding, PolyEmbedding
 
 def load_embedding(fname, format="word2vec_bin", normalize=True,
-                   lower=False, clean_words=False, load_kwargs={}):
+                   lower=False, clean_words=False,
+                   lowercase_if_OOV=False, lemmatize_if_OOV=False,
+                   load_kwargs={}):
     """
     Loads embeddings from file
 
@@ -49,6 +51,9 @@ def load_embedding(fname, format="word2vec_bin", normalize=True,
         w.normalize_words(inplace=True)
     if lower or clean_words:
         w.standardize_words(lower=lower, clean_words=clean_words, inplace=True)
+    # next two lines are hacks. Was too lazy to modify all the calls to __init__
+    w._lowercase_if_OOV = lowercase_if_OOV
+    w._lemmatize_if_OOV = lemmatize_if_OOV
     return w
 
 
