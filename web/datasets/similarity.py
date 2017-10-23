@@ -32,10 +32,12 @@ def fetch_MTurk():
 
     Additionally scores were multiplied by factor of 2.
     """
-    data = _get_as_pd('https://www.dropbox.com/s/f1v4ve495mmd9pw/EN-TRUK.txt?dl=1',
-                      'similarity', header=None, sep=" ").values
+    #data = _get_as_pd('https://www.dropbox.com/s/f1v4ve495mmd9pw/EN-TRUK.txt?dl=1',
+    #                  'similarity', header=None, sep=" ").values
+    data = _get_as_pd('https://www.dropbox.com/s/55qx9rxsg3k17s2/MTURK-771.csv?dl=1',
+                      'similarity', header=None, sep=",").values
     return Bunch(X=data[:, 0:2].astype("object"),
-                 y=2 * data[:, 2].astype(np.float))
+                 y=data[:, 2].astype(np.float))
 
 
 def fetch_MEN(which="all", form="natural"):
