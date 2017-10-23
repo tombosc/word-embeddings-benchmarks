@@ -90,10 +90,11 @@ if __name__ == "__main__":
         if format == "glove":
             vocab_size = sum(1 for line in open(fname))
             dim = len(next(open(fname)).split()) - 1
+            load_kwargs={'dim': dim, 'vocab_size': vocab_size}
 
-        w = load_embedding(fname, format=format, normalize=True, lower=True,
+        w = load_embedding(fname, format=format, normalize=options.normalize, 
                            clean_words=options.clean_words,
-                           lower=options.lowercase
+                           lower=options.lowercase,
                            lowercase_if_OOV=options.lower_or_lemma,
                            lemmatize_if_OOV=options.lower_or_lemma,
                            load_kwargs=load_kwargs)
