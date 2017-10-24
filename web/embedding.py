@@ -87,9 +87,11 @@ class Embedding(object):
         try:
             return self[k]
         except KeyError as e:
-            if k.lower() in self.vocabulary:
-                return self[k.lower()]
-            else:
+            if self._lowercase_if_OOV:
+                lowercased = k.lower()
+                if lowercased in self.vocabulary:
+                    return self[lowercased]
+            if self._lemmatize_if_OOV:
                 lemma = wordnet.morphy(k)
                 if lemma in self.vocabulary:
                     return self[lemma]
