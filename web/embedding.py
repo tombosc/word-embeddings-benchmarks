@@ -95,8 +95,7 @@ class Embedding(object):
                 lemma = wordnet.morphy(k)
                 if lemma in self.vocabulary:
                     return self[lemma]
-                else:
-                    return default
+            return default
 
     def standardize_words(self, lower=False, clean_words=False, inplace=False):
         return self.transform_words(partial(standardize_string, lower=lower, clean_words=clean_words),
