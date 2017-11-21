@@ -425,6 +425,7 @@ def evaluate_on_all(w):
         "WS353R": fetch_WS353(which="relatedness"),
         "WS353S": fetch_WS353(which="similarity"),
         "SimLex999": fetch_SimLex999(),
+        "SimLex333": fetch_SimLex999(which='333'),
         "SimVerb3500-dev": fetch_SimVerb3500(which='dev'),
         "SimVerb3500-test": fetch_SimVerb3500(which='test'),
         "RW": fetch_RW(),
