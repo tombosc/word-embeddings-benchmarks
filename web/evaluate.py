@@ -333,7 +333,7 @@ def cosine_similarity(v1, v2, model=None):
         return ValueError('Unknown model {}'.format(model))
 
 
-def evaluate_similarity_multi(w, X, y, model):
+def evaluate_similarity_multi(w, X, y, model, missing_words = 'mean'):
     """
     Compute spearman's rank correlation based on cosine similarity
 
@@ -347,17 +347,31 @@ def evaluate_similarity_multi(w, X, y, model):
     assert(model in ['AvgSim', 'MaxSim'])
 
     # TODO: also replace code by call in evaluate_similarity()
-    missing_words = count_missing_words(w, X) 
-    if missing_words > 0:
-        logger.warning("Missing {} words. Will replace them with mean vector".format(missing_words))
+    n_missing_words = count_missing_words(w, X) 
+    if n_missing_words > 0:
+        logger.warning("Missing {} words. ".format(n_missing_words))
 
     mean_vector = np.mean(w.vectors, axis=0, keepdims=True)
-    A = [w.get_multi(word, mean_vector) for word in X[:, 0]]
-    B = [w.get_multi(word, mean_vector) for word in X[:, 1]]
+    if missing_words == 'mean':
+        logger.info("Will replace them with mean vector".format(missing_words))
+        A = [w.get_multi(word, mean_vector) for word in X[:, 0]]
+        B = [w.get_multi(word, mean_vector) for word in X[:, 1]]
+    elif missing_words == 'filter_out':
+        logger.info("Will ignore them")
+        A, B = [], []
+        for a, b in X:
+            if a not in w or b not in w:
+                continue
+            A.append(w.get_multi(a, mean_vector))
+            B.append(w.get_multi(b, mean_vector))
+    else:
+        raise ValueError("Unrecognized treatment of missing words {}".format(
+                            missing_words))
+
     scores = np.array([cosine_similarity(v1, v2, model) for v1, v2 in zip(A, B)])
     return scipy.stats.spearmanr(scores, y).correlation
 
-def evaluate_similarity(w, X, y):
+def evaluate_similarity(w, X, y, missing_words = 'mean'):
     """
     Calculate Spearman correlation between cosine similarity of the model
     and human rated similarity of word pairs
@@ -381,18 +395,31 @@ def evaluate_similarity(w, X, y):
     if isinstance(w, dict):
         w = Embedding.from_dict(w)
 
-    missing_words = 0
-    words = w.vocabulary.word_id
-    for query in X:
-        for query_word in query:
-            if query_word not in words:
-                missing_words += 1
-    if missing_words > 0:
-        logger.warning("Missing {} words. Will replace them with mean vector".format(missing_words))
+    n_missing_words = count_missing_words(w, X)
+    if n_missing_words > 0:
+        logger.warning("Missing {} words.".format(missing_words))
 
     mean_vector = np.mean(w.vectors, axis=0, keepdims=True)
-    A = np.asarray([w.get(word, mean_vector) for word in X[:, 0]])
-    B = np.asarray([w.get(word, mean_vector) for word in X[:, 1]])
+    A, B = [], []
+    if missing_words == 'mean' or n_missing_words == 0:
+        if n_missing_words:
+            logger.info("Will replace them with mean vector".format(missing_words))
+        A = [w.get(word, mean_vector) for word in X[:, 0]]
+        B = [w.get(word, mean_vector) for word in X[:, 1]]
+    elif missing_words == 'filter_out':
+        logger.info("Will ignore them")
+        y_filtered = []
+        for x, gt in zip(X, y):
+            a, b = x
+            if a not in w or b not in w:
+                continue
+            A.append(w.get(a, mean_vector))
+            B.append(w.get(b, mean_vector))
+            y_filtered.append(gt)
+        y = np.asarray(y_filtered)
+
+    #A = np.asarray([w.get(word, mean_vector) for word in X[:, 0]])
+    #B = np.asarray([w.get(word, mean_vector) for word in X[:, 1]])
     scores = np.array([cosine_similarity(v1, v2) for v1, v2 in zip(A, B)])
     #scores = np.array([v1.dot(v2.T)/(np.linalg.norm(v1)*np.linalg.norm(v2)) for v1, v2 in zip(A, B)])
     return scipy.stats.spearmanr(scores, y).correlation
