@@ -267,7 +267,7 @@ def fetch_multilingual_SimLex999(which="EN"):
     return Bunch(X=X.astype("object"), y=y, sd=sd)
 
 
-def fetch_SimLex999():
+def fetch_SimLex999(which='all'):
     """
     Fetch SimLex999 dataset for testing attributional similarity
 
@@ -295,6 +295,7 @@ def fetch_SimLex999():
      difference - note that clothes are not similar to closets (different materials, function etc.),
      even though they are very much related: coast - shore 9.00 9.10, clothes - closet 1.96 8.00
     """
+
     data = _get_as_pd('https://www.dropbox.com/s/0jpa1x8vpmk3ych/EN-SIM999.txt?dl=1',
                       'similarity', sep="\t")
 
@@ -306,7 +307,15 @@ def fetch_SimLex999():
     POS = data[['POS']].values
     assoc = data[['Assoc(USF)', 'SimAssoc333']].values
 
-    return Bunch(X=X.astype("object"), y=y, sd=sd, conc=conc, POS=POS, assoc=assoc)
+    if which == 'all':
+        idx = np.asarray(range(len(X)))
+    elif which == '333':
+        idx = np.where(assoc[:,1] == 1)[0]
+    else:
+        raise ValueError("Subset of SL999 not recognized {}".format(which))
+
+    return Bunch(X=X[idx].astype("object"), y=y[idx], sd=sd[idx], conc=conc[idx],
+                 POS=POS[idx], assoc=assoc[idx])
 
 def fetch_SimVerb3500(which='all'):
     """
